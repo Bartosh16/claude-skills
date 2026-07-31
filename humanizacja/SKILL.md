@@ -7,6 +7,10 @@ description: Humanizuje polskie teksty AI - identyfikuje sygnały "stylu AI" (GP
 
 Celem jest przerobić wygenerowany tekst tak, żeby brzmiał jak napisany przez człowieka z opinią, doświadczeniem i charakterem - nie jak skompilowany przez algorytm.
 
+**Ten skill jest do tekstów POLSKICH.** Jeśli tekst jest po angielsku, użyj skilla `/humanize` - warstwa strukturalna jest wspólna, ale słownictwo, typografia i obsługa fleksji już nie (w angielskim em dash nie jest błędem, kropka wchodzi do środka cudzysłowu, a proste cudzysłowy są normą, nie usterką).
+
+Po humanizacji zweryfikuj wynik skillem `/humanizacja-check` - sprawdza deterministycznie, czy zmiany faktycznie zaszły i czy sygnały zniknęły, zamiast polegać na własnej ocenie „wygląda lepiej".
+
 Praca przebiega w dwóch krokach:
 1. **Audyt** - zidentyfikuj wszystkie sygnały AI w tekście (z cytatami i kategoriami).
 2. **Przepisanie** - przebuduj tekst z zachowaniem sensu i długości, eliminując sygnały AI.
