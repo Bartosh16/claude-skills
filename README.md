@@ -20,6 +20,12 @@ Sprawdza deterministycznie, czy humanizacja faktycznie zaszła: porównuje wersj
 
 Model, który przed chwilą przepisał tekst, jest najgorszym sędzią własnej roboty – ten skill zastępuje „wygląda lepiej" pomiarem.
 
+### /fact-checker – weryfikacja twierdzeń + poprawiony tekst
+
+Wyławia z tekstu twierdzenia sprawdzalne (liczby, daty, statystyki, cytaty, opisy produktów), weryfikuje każde przez WebSearch na co najmniej 2–3 źródłach i składa raport z werdyktami PRAWDA / FAŁSZ / NIEWERYFIKOWALNE, uzasadnieniem i linkami.
+
+Na końcu nie zostawia samej diagnozy: generuje gotowy tekst po korekcie plus prompt do dalszej edycji. Zasada nadrzędna – każda liczba dostaje atrybucję źródła w nawiasie, a jeżeli źródła pierwotnego nie ma, liczba jedzie z oznaczeniem `[źródło: podać]` zamiast cicho przechodzić do publikacji.
+
 ### /ai-search-optimizer
 
 Optymalizacja treści pod AI Search i cytowania przez LLM-y: BLUF, koszt pozyskania informacji, struktura nagłówków, gęstość informacyjna.
@@ -41,7 +47,7 @@ Wspólne zasady typograficzne (cudzysłowy „", półpauza, kolejność interpu
 Skopiuj foldery do katalogu skilli Claude Code:
 
 ```
-cp -r humanizacja humanize humanizacja-check _shared knowledge-graph od-zera-do-zlecenia ~/.claude/skills/
+cp -r humanizacja humanize humanizacja-check _shared fact-checker knowledge-graph od-zera-do-zlecenia ~/.claude/skills/
 ```
 
 Na Windows: `C:\Users\<user>\.claude\skills\`.
