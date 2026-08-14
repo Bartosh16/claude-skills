@@ -1,0 +1,131 @@
+# Template: pobieranie transkryptów YouTube przez yt-dlp.
+# Dostosuj zmienne ROOT, CHANNEL_URL, COUNT, MIN_DURATION_MIN, LANGS.
+# Uruchom: PowerShell 5.1+ z UTF-8 BOM (rewrite-with-bom helper poniżej).
+
+# ===== CONFIG =====
+$ROOT = "C:\Users\danie\Documents\Firmowe\Klienci\NAZWA_KLIENTA"  # folder roboczy
+$CHANNEL_URL = "https://www.youtube.com/channel/UCxxxxxxxxx"  # ZAWSZE channel ID, nie handle z kropką
+$COUNT = 30                # ile filmów wziąć (top N najnowszych)
+$SCAN_LIMIT = 50           # ile filmów przeskanować w listingu kanału
+$MIN_DURATION_MIN = 5      # minimalna długość filmu w minutach (filtruj shorty)
+$LANGS = @("pl", "pl-PL", "en", "en-US")  # kolejność prób — pierwszy znaleziony wygrywa
+$SLEEP_BETWEEN = 5         # sekundy między filmami
+$RETRY_SLEEP_BASE = 20     # sekundy backoff przy 429
+
+# ===== PIPELINE =====
+$outDir = Join-Path $ROOT "transkrypcje-yt"
+if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
+
+# Krok 1 — scan kanału
+Write-Host "Skanuję kanał: $CHANNEL_URL"
+$scanFile = Join-Path $ROOT "_yt_channel_scan.json"
+$tmpFile = Join-Path $env:TEMP "yt_scan_raw.txt"
+$args = @("--flat-playlist","--dump-json","--no-warnings","--playlist-end",$SCAN_LIMIT,$CHANNEL_URL)
+& yt-dlp $args > $tmpFile 2>&1
+$lines = Get-Content $tmpFile -Encoding UTF8 | Where-Object { $_ -match "^\{" }
+$videos = @()
+foreach ($line in $lines) {
+  try {
+    $v = $line | ConvertFrom-Json
+    if ($v.duration -ge ($MIN_DURATION_MIN * 60)) {
+      $videos += [PSCustomObject]@{
+        videoId = $v.id
+        title = $v.title
+        durationLabel = $v.duration_string
+        url = "https://www.youtube.com/watch?v=$($v.id)"
+      }
+    }
+  } catch {}
+}
+$videos = $videos | Select-Object -First $COUNT
+Write-Host "Wybrano $($videos.Count) filmów"
+
+# Krok 2 — pobierz transkrypty sekwencyjnie
+$log = @()
+$i = 0
+foreach ($v in $videos) {
+  $i++
+  $id = $v.videoId
+  $title = $v.title
+  $url = $v.url
+  $prefix = "{0:D2}_{1}" -f $i, $id
+  if (Test-Path (Join-Path $outDir "$prefix.txt")) {
+    Write-Host "[$i/$COUNT] SKIP (cached): $title"
+    continue
+  }
+  $tmpDir = Join-Path $env:TEMP "ytdl_$id"
+  if (Test-Path $tmpDir) { Remove-Item -Recurse -Force $tmpDir }
+  New-Item -ItemType Directory -Path $tmpDir | Out-Null
+
+  Write-Host "[$i/$COUNT] $title -> $id"
+  $gotFile = $false; $usedLang = "?"
+
+  foreach ($lang in $LANGS) {
+    $args = @(
+      "--quiet","--skip-download","--write-subs","--write-auto-subs",
+      "--sub-format","json3/vtt/best","--sub-langs",$lang,
+      "--no-warnings","--js-runtimes","node",
+      "--output",(Join-Path $tmpDir "%(id)s.%(ext)s"),
+      $url
+    )
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+      $errFile = Join-Path $tmpDir "err.txt"
+      Start-Process -FilePath "yt-dlp" -ArgumentList $args -NoNewWindow -Wait -RedirectStandardError $errFile | Out-Null
+      $subFiles = Get-ChildItem -Path $tmpDir -Filter "$id.*" -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in ".json3", ".vtt" }
+      if ($subFiles.Count -gt 0) { $gotFile = $true; $usedLang = $lang; break }
+      $err = if (Test-Path $errFile) { Get-Content $errFile -Raw } else { "" }
+      if ($err -match "429|Too Many Requests") {
+        $wait = $RETRY_SLEEP_BASE * $attempt
+        Write-Host "  [$lang] 429, sleep $wait s..."
+        Start-Sleep -Seconds $wait
+      } else { break }
+    }
+    if ($gotFile) { break }
+  }
+
+  if (-not $gotFile) {
+    Write-Host "  FAIL: no transcript"
+    Remove-Item -Recurse -Force $tmpDir
+    Start-Sleep -Seconds $SLEEP_BETWEEN
+    continue
+  }
+
+  $best = Get-ChildItem -Path $tmpDir -Filter "$id.*" | Where-Object { $_.Extension -in ".json3", ".vtt" } | Sort-Object { if ($_.Extension -eq ".json3") { 0 } else { 1 } }, Length -Descending | Select-Object -First 1
+  Copy-Item -Path $best.FullName -Destination (Join-Path $outDir "$prefix$($best.Extension)") -Force
+
+  # plaintext
+  $text = ""
+  if ($best.Extension -eq ".json3") {
+    try {
+      $j = Get-Content $best.FullName -Raw -Encoding utf8 | ConvertFrom-Json
+      $parts = @()
+      foreach ($ev in $j.events) {
+        if ($ev.segs) {
+          $line = ($ev.segs | ForEach-Object { $_.utf8 }) -join ""
+          if ($line.Trim()) { $parts += $line }
+        }
+      }
+      $text = ($parts -join " ") -replace "\s+", " "
+    } catch { $text = "" }
+  }
+  if (-not $text -and $best.Extension -eq ".vtt") {
+    $lines = Get-Content $best.FullName -Encoding utf8
+    $body = $lines | Where-Object { $_ -notmatch "^WEBVTT|^Kind:|^Language:|-->|^\s*$|^\d+$" }
+    $text = ($body -join " ") -replace "<[^>]+>", "" -replace "\s+", " "
+  }
+
+  $header = "TYTUL: $title`r`nURL: $url`r`nID: $id`r`nJEZYK: $usedLang`r`n---`r`n"
+  [System.IO.File]::WriteAllText((Join-Path $outDir "$prefix.txt"), ($header + $text), (New-Object System.Text.UTF8Encoding($false)))
+  Remove-Item -Recurse -Force $tmpDir
+  Start-Sleep -Seconds $SLEEP_BETWEEN
+}
+
+Write-Host "DONE — transkrypty w $outDir"
+
+# ===== UWAGI =====
+# 1. PowerShell 5.1 czyta skrypty bez BOM jako Windows-1252. Jeśli ścieżka ma polskie znaki,
+#    zapisz ten plik z UTF-8 BOM (np. przez: $c = Get-Content $p -Raw -Encoding UTF8;
+#    [System.IO.File]::WriteAllText($p, $c, (New-Object System.Text.UTF8Encoding($true)))).
+# 2. yt-dlp musi być w PATH. Sprawdź: `where.exe yt-dlp`.
+# 3. Handle z kropką (@geekwork.pl) rzuca 404 — używaj channel ID.
+# 4. Apka YT mass transcript (Next.js) ma 2 bugi — pomijaj ją, idź yt-dlp bezpośrednio.

@@ -1,0 +1,417 @@
+"""Stylometric analysis template.
+
+Adjust constants below (ROOT, CORPUS_DIR), then run with Python 3.10+ (stdlib only).
+Outputs:
+  - {ROOT}/_stats.json — wszystkie surowe statystyki (n-gramy, openers, sample sentences)
+  - {ROOT}/_stats-raw.md — czytelny dump statystyk z próbkami
+
+Customization points:
+  - SIGNATURE_PHRASES — lista fraz których szukasz konkretnie (zaktualizuj po pierwszym przebiegu)
+  - STOPWORDS — bazowa polska lista; dorzuć żargon korpusu jeśli go zaszumia
+  - TEXT_EXTENSIONS — jakie pliki ładujesz
+"""
+from __future__ import annotations
+import collections
+import json
+import re
+import sys
+from pathlib import Path
+
+# ===== CONFIG — DOSTOSUJ PRZED URUCHOMIENIEM =====
+ROOT = Path(r"PATH/TO/stylometria")  # folder gdzie zapisać wyniki
+CORPUS_DIR = Path(r"PATH/TO/corpus")  # folder ze źródłowymi tekstami (.txt/.md/.vtt/.json3)
+TEXT_EXTENSIONS = {".txt", ".md"}
+LANG = "pl"  # "pl" lub "en" — wpływa na stopwords i regex tokenizacji
+
+OUT_JSON = ROOT / "_stats.json"
+OUT_MD = ROOT / "_stats-raw.md"
+
+# Frazy, których obecność/częstość chcesz świadomie zmierzyć (po pierwszym przebiegu dorzuć top n-gramy które Cię zaskoczyły):
+SIGNATURE_PHRASES = [
+    # generyczne — działają dla większości korpusów PL
+    "po prostu", "tak naprawdę", "na przykład", "krok po kroku",
+    "po pierwsze", "po drugie", "trzeci wniosek",
+    "mam nadzieję", "dzięki temu", "jak widzisz", "to jest",
+    # specyficzne dla autora — dopisz po pierwszym oglądzie top n-gramów
+]
+
+# ===== STOPWORDS =====
+STOPWORDS_PL = set("""
+a aby ale albo ani bardzo bo by była było były bym był chce chyba ci co coś czy czyli dla
+do dziś dzisiaj go gdy gdyby gdzie i ich ile im inne innych iż ja jak jaki jakie jakim jakimi
+jakiś jako jakąś je jeden jedna jedno jednak jego jej jest jeszcze już ją kiedy kilka koniec
+ktoś która które których którym którymi który którzy ku lub ma mają mam mamy mi mnie moja
+moje moim moją mogę może można mu my na nad nam nas nasz nasza nasze niech nie niż nim no
+o od po pod prze przed przez przy ta tak takie tam te tego tej ten teraz też to tu tutaj
+tych tylko tym tymi u w wam was we wiele więc więcej wszelkie wszelki wszystkich wszystkie
+wszystko wszystkim wy z za ze zaś że żeby się swoim swoich swoje sobie sam są ty tę nasi
+"""\
+.split()) | set("""
+muzyka odchrząknięcie eee ee em uhm uh y yyy yy hm hmm właśnie ok tutaj on ona ono oni one
+""".split())
+
+STOPWORDS_EN = set("""
+a about after all also an and any are as at be been but by can could did do does for from
+get got had has have he her here him his how i if in into is it its just like me my no not
+of on or our out so some than that the their them then there these they this to too up was
+we were what when where which who will with would you your
+""".split())
+
+STOPWORDS = STOPWORDS_PL if LANG == "pl" else STOPWORDS_EN
+
+WORD_RE = re.compile(
+    r"[A-Za-zĄąĆćĘęŁłŃńÓóŚśŹźŻż]+" if LANG == "pl" else r"[A-Za-z]+"
+)
+
+# ===== METRYKI WARSTWOWE (mikro / mezo / makro) =====
+# Framework wg StylMaster: mikro = słowo/gramatyka/interpunkcja,
+# mezo = zdanie/środki stylistyczne/akapit, makro = ton/kohezja/idiosynkrazje.
+# To sygnały ilościowe — interpretację jakościową robisz w Kroku 5 skilla.
+
+# MIKRO — strona bierna (heurystyka: słowo posiłkowe + imiesłów bierny).
+# Świadomie zawyża/zaniża — traktuj jako sygnał „dużo/mało", nie jako licznik dokładny.
+PASSIVE_RE = {
+    "pl": re.compile(
+        r"\b(został[aoy]?|zostali|zostały|zostanie|zostaną|jest|są|był[aoy]?|byli|były|będzie|będą)\s+"
+        r"\w+(?:ny|na|ne|ni|ty|ta|te|ci|ony|ona|one|any|ana|ane)\b",
+        re.IGNORECASE,
+    ),
+    "en": re.compile(
+        r"\b(is|are|was|were|been|being|be)\s+\w+ed\b|\b(is|are|was|were|been|being|be)\s+\w+en\b",
+        re.IGNORECASE,
+    ),
+}
+
+# MIKRO — znaki interpunkcyjne, które różnicują styl (na 1000 słów).
+PUNCT_MARKS = {
+    "przecinek": ",",
+    "srednik": ";",
+    "dwukropek": ":",
+    "polpauza": "–",
+    "emdash": "—",
+    "wielokropek": "…",
+    "wykrzyknik": "!",
+    "nawias": "(",
+    "mysln_dywiz": "-",
+}
+
+# MEZO — spójniki podrzędne: obecność ≥1 w zdaniu ⇒ traktujemy zdanie jako złożone.
+SUBORD_PL = {
+    "że", "który", "która", "które", "których", "którym", "ponieważ", "bo", "gdy",
+    "gdyby", "jeśli", "jeżeli", "aby", "żeby", "choć", "chociaż", "kiedy", "dopóki",
+    "zanim", "podczas", "mimo", "dlatego", "więc", "gdzie", "jak",
+}
+SUBORD_EN = {
+    "that", "which", "who", "whom", "whose", "because", "since", "although",
+    "though", "while", "when", "whenever", "if", "unless", "until", "before",
+    "after", "so", "therefore", "whereas", "where", "as",
+}
+
+# MAKRO — słowa-przejścia (kohezja): czym autor spina myśli między zdaniami/akapitami.
+TRANSITIONS_PL = [
+    "dlatego", "jednak", "ale", "więc", "natomiast", "ponadto", "mimo to",
+    "z kolei", "w efekcie", "tymczasem", "czyli", "zatem", "ponieważ",
+    "dzięki temu", "w rezultacie", "po pierwsze", "po drugie", "po trzecie",
+    "z drugiej strony", "przede wszystkim", "wręcz przeciwnie", "co więcej",
+]
+TRANSITIONS_EN = [
+    "therefore", "however", "but", "so", "meanwhile", "moreover", "still",
+    "in turn", "as a result", "that is", "thus", "because", "consequently",
+    "first", "second", "third", "on the other hand", "above all", "what's more",
+]
+
+# MEZO/MAKRO — środki stylistyczne (proxy leksykalne; interpretuj ostrożnie).
+COMPARISON_MARKERS_PL = ["jak ", "jakby", "niczym", "niby", "to jest tak jak", "podobnie jak"]
+COMPARISON_MARKERS_EN = ["like ", "as if", "as though", "kind of like"]
+
+SUBORD = SUBORD_PL if LANG == "pl" else SUBORD_EN
+TRANSITIONS = TRANSITIONS_PL if LANG == "pl" else TRANSITIONS_EN
+COMPARISON_MARKERS = COMPARISON_MARKERS_PL if LANG == "pl" else COMPARISON_MARKERS_EN
+
+
+def split_paragraphs(text: str) -> list[str]:
+    """Akapit = blok oddzielony pustą linią. Dla mowy (auto-caption YT) plik
+    zwykle NIE ma akapitów → zwróci [cały tekst], co jest sygnałem, że warstwy
+    mezo/makro trzeba czytać per materiał, nie liczyć na zlepku."""
+    blocks = re.split(r"\n\s*\n", text.strip())
+    return [b.strip() for b in blocks if b.strip()]
+
+
+def read_corpus() -> list[dict]:
+    items = []
+    for p in sorted(CORPUS_DIR.rglob("*")):
+        if p.is_file() and p.suffix.lower() in TEXT_EXTENSIONS:
+            text = p.read_text(encoding="utf-8", errors="ignore")
+            # If file has a "---" leader (YT transcript style), use only body
+            if "\n---\n" in text:
+                _, body = text.split("\n---\n", 1)
+            elif text.startswith("---"):
+                _, body = text.split("---", 1)
+            else:
+                body = text
+            items.append({"file": p.name, "body": body.strip()})
+    return items
+
+
+def tokenize_words(text: str) -> list[str]:
+    return [m.lower() for m in WORD_RE.findall(text)]
+
+
+def split_sentences(text: str) -> list[str]:
+    t = re.sub(r"\[[^\]]+\]", " ", text)  # remove [muzyka] etc
+    t = re.sub(r"\s+", " ", t).strip()
+    parts = re.split(r"(?<=[\.\?\!])\s+(?=[A-ZĄĆĘŁŃÓŚŹŻ])", t)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def ngrams(tokens: list[str], n: int) -> list[tuple]:
+    return list(zip(*[tokens[i:] for i in range(n)]))
+
+
+def main() -> None:
+    items = read_corpus()
+    if not items:
+        print(f"No corpus files found in {CORPUS_DIR}", file=sys.stderr)
+        sys.exit(1)
+
+    all_text = "\n\n".join(it["body"] for it in items)
+    all_tokens = tokenize_words(all_text)
+    sentences = []
+    for it in items:
+        sentences.extend(split_sentences(it["body"]))
+
+    sent_lengths = [len(tokenize_words(s)) for s in sentences if tokenize_words(s)]
+    avg_sent = sum(sent_lengths) / len(sent_lengths) if sent_lengths else 0
+    median_sent = sorted(sent_lengths)[len(sent_lengths)//2] if sent_lengths else 0
+    very_short = [s for s, l in zip(sentences, sent_lengths) if 2 <= l <= 5]
+    long_sentences = [s for s, l in zip(sentences, sent_lengths) if l >= 30]
+
+    types = set(all_tokens)
+    ttr = len(types) / len(all_tokens) if all_tokens else 0
+
+    content_tokens = [t for t in all_tokens if t not in STOPWORDS and len(t) > 2]
+    top_words = collections.Counter(content_tokens).most_common(80)
+
+    top_bi = collections.Counter(ngrams(all_tokens, 2)).most_common(60)
+    top_tri = collections.Counter(ngrams(all_tokens, 3)).most_common(60)
+    top_4 = collections.Counter(ngrams(all_tokens, 4)).most_common(40)
+    top_5 = collections.Counter(ngrams(all_tokens, 5)).most_common(30)
+
+    openers = collections.Counter()
+    enders = collections.Counter()
+    for s in sentences:
+        t = tokenize_words(s)
+        if len(t) >= 2:
+            openers[(t[0], t[1])] += 1
+            enders[(t[-2], t[-1])] += 1
+    top_openers = openers.most_common(40)
+    top_enders = enders.most_common(30)
+
+    video_openings = []
+    video_endings = []
+    for it in items:
+        s_list = split_sentences(it["body"])
+        if s_list:
+            video_openings.append({
+                "file": it["file"],
+                "first3": " ".join(s_list[:3])[:600],
+            })
+            video_endings.append({
+                "file": it["file"],
+                "last3": " ".join(s_list[-3:])[:600],
+            })
+
+    questions = [s for s in sentences if s.endswith("?")]
+    declar = [s for s in sentences if s.endswith(".")]
+
+    phrase_counts = {}
+    text_lower = all_text.lower()
+    for ph in SIGNATURE_PHRASES:
+        phrase_counts[ph] = text_lower.count(ph)
+
+    short_words = sum(1 for w in all_tokens if len(w) <= 4)
+    mid_words = sum(1 for w in all_tokens if 5 <= len(w) <= 8)
+    long_words = sum(1 for w in all_tokens if len(w) >= 9)
+
+    # ===== METRYKI WARSTWOWE =====
+    tok_total = max(1, len(all_tokens))
+    per_1000 = lambda n: round(1000 * n / tok_total, 2)
+
+    # --- MIKRO: strona bierna + interpunkcja ---
+    passive_hits = len(PASSIVE_RE[LANG].findall(all_text))
+    punct_counts = {name: all_text.count(ch) for name, ch in PUNCT_MARKS.items()}
+    punct_per_1000 = {name: per_1000(c) for name, c in punct_counts.items()}
+
+    # --- MEZO: zdania złożone vs proste, akapity ---
+    complex_sent = 0
+    for s in sentences:
+        s_toks = set(tokenize_words(s))
+        if s_toks & SUBORD:
+            complex_sent += 1
+    simple_sent = len(sentences) - complex_sent
+
+    paragraphs = []
+    files_with_paragraphs = 0
+    for it in items:
+        p = split_paragraphs(it["body"])
+        if len(p) > 1:
+            files_with_paragraphs += 1
+        paragraphs.extend(p)
+    para_word_lengths = [len(tokenize_words(p)) for p in paragraphs if tokenize_words(p)]
+    para_sent_lengths = [len(split_sentences(p)) for p in paragraphs if split_sentences(p)]
+    avg_para_words = round(sum(para_word_lengths) / len(para_word_lengths), 1) if para_word_lengths else 0
+    avg_para_sents = round(sum(para_sent_lengths) / len(para_sent_lengths), 1) if para_sent_lengths else 0
+
+    # --- MEZO: środki stylistyczne (proxy leksykalne) ---
+    comparison_hits = sum(text_lower.count(m) for m in COMPARISON_MARKERS)
+
+    # --- MAKRO: kohezja (słowa-przejścia) ---
+    transition_counts = {t: text_lower.count(t) for t in TRANSITIONS}
+    transition_total = sum(transition_counts.values())
+
+    layers = {
+        "MIKRO": {
+            "passive_hits_approx": passive_hits,
+            "passive_per_1000_words": per_1000(passive_hits),
+            "punctuation_raw": punct_counts,
+            "punctuation_per_1000_words": punct_per_1000,
+        },
+        "MEZO": {
+            "complex_sentences": complex_sent,
+            "simple_sentences": simple_sent,
+            "complex_sentence_pct": round(100 * complex_sent / max(1, len(sentences)), 2),
+            "paragraphs_total": len(paragraphs),
+            "files_with_multiple_paragraphs": files_with_paragraphs,
+            "files_total": len(items),
+            "avg_paragraph_words": avg_para_words,
+            "avg_paragraph_sentences": avg_para_sents,
+            "comparison_markers_hits_approx": comparison_hits,
+        },
+        "MAKRO": {
+            "transition_words_total": transition_total,
+            "transition_per_1000_words": per_1000(transition_total),
+            "transition_top": sorted(
+                ((t, c) for t, c in transition_counts.items() if c > 0),
+                key=lambda x: -x[1],
+            )[:15],
+        },
+    }
+
+    stats = {
+        "summary": {
+            "files": len(items),
+            "tokens_total": len(all_tokens),
+            "types": len(types),
+            "type_token_ratio": round(ttr, 4),
+            "sentences": len(sentences),
+            "avg_sentence_words": round(avg_sent, 2),
+            "median_sentence_words": median_sent,
+            "questions": len(questions),
+            "declaratives": len(declar),
+            "question_ratio_pct": round(100 * len(questions) / max(1, len(sentences)), 2),
+            "words_short_le4_pct": round(100 * short_words / max(1, len(all_tokens)), 2),
+            "words_mid_5_8_pct": round(100 * mid_words / max(1, len(all_tokens)), 2),
+            "words_long_ge9_pct": round(100 * long_words / max(1, len(all_tokens)), 2),
+            "very_short_sentences": len(very_short),
+            "long_sentences_ge30": len(long_sentences),
+        },
+        "layers": layers,
+        "top_content_words": top_words,
+        "top_bigrams": [(" ".join(k), v) for k, v in top_bi],
+        "top_trigrams": [(" ".join(k), v) for k, v in top_tri],
+        "top_4grams": [(" ".join(k), v) for k, v in top_4],
+        "top_5grams": [(" ".join(k), v) for k, v in top_5],
+        "top_sentence_openers": [(" ".join(k), v) for k, v in top_openers],
+        "top_sentence_enders": [(" ".join(k), v) for k, v in top_enders],
+        "signature_phrases": phrase_counts,
+        "video_openings_sample": video_openings[:10],
+        "video_endings_sample": video_endings[:10],
+        "very_short_sentences_sample": very_short[:60],
+        "long_sentence_sample": long_sentences[:8],
+    }
+
+    ROOT.mkdir(parents=True, exist_ok=True)
+    OUT_JSON.write_text(json.dumps(stats, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    md = []
+    md.append("# Stylometria – surowe statystyki\n")
+    md.append("## Summary\n")
+    for k, v in stats["summary"].items():
+        md.append(f"- **{k}**: {v}")
+
+    md.append("\n## Warstwy mikro / mezo / makro\n")
+    md.append("### MIKRO — gramatyka i interpunkcja\n")
+    md.append(f"- **strona bierna (approx)**: {layers['MIKRO']['passive_hits_approx']} "
+              f"({layers['MIKRO']['passive_per_1000_words']} / 1000 słów) "
+              f"— heurystyka, traktuj jako sygnał dużo/mało")
+    md.append("- **interpunkcja / 1000 słów**:")
+    for name, v in sorted(layers["MIKRO"]["punctuation_per_1000_words"].items(), key=lambda x: -x[1]):
+        md.append(f"  - {name}: {v} (raw {layers['MIKRO']['punctuation_raw'][name]})")
+    md.append("\n### MEZO — zdania złożone i akapity\n")
+    md.append(f"- **zdania złożone**: {layers['MEZO']['complex_sentences']} "
+              f"({layers['MEZO']['complex_sentence_pct']}%) vs proste {layers['MEZO']['simple_sentences']}")
+    md.append(f"- **akapity**: {layers['MEZO']['paragraphs_total']} "
+              f"(pliki z >1 akapitem: {layers['MEZO']['files_with_multiple_paragraphs']}/{layers['MEZO']['files_total']})")
+    md.append(f"- **średni akapit**: {layers['MEZO']['avg_paragraph_words']} słów / "
+              f"{layers['MEZO']['avg_paragraph_sentences']} zdań")
+    md.append(f"- **markery porównań (approx)**: {layers['MEZO']['comparison_markers_hits_approx']}")
+    if layers["MEZO"]["files_with_multiple_paragraphs"] == 0:
+        md.append("- ⚠️ **Korpus bez akapitów** (typowe dla auto-caption YT). "
+                  "Warstwę mezo/makro czytaj per materiał w Kroku 5, nie z tych zbiorczych liczb.")
+    md.append("\n### MAKRO — kohezja (słowa-przejścia)\n")
+    md.append(f"- **przejścia łącznie**: {layers['MAKRO']['transition_words_total']} "
+              f"({layers['MAKRO']['transition_per_1000_words']} / 1000 słów)")
+    md.append("- **top przejścia**:")
+    for t, c in layers["MAKRO"]["transition_top"]:
+        md.append(f"  - `{t}` – {c}")
+
+    md.append("\n## Top content words (no stopwords, top 50)\n")
+    for w, c in top_words[:50]:
+        md.append(f"- {w} – {c}")
+    md.append("\n## Top bigrams (top 40)\n")
+    for k, c in top_bi[:40]:
+        md.append(f"- `{' '.join(k)}` – {c}")
+    md.append("\n## Top trigrams (top 40)\n")
+    for k, c in top_tri[:40]:
+        md.append(f"- `{' '.join(k)}` – {c}")
+    md.append("\n## Top 4-grams (top 25)\n")
+    for k, c in top_4[:25]:
+        md.append(f"- `{' '.join(k)}` – {c}")
+    md.append("\n## Top 5-grams (top 20)\n")
+    for k, c in top_5[:20]:
+        md.append(f"- `{' '.join(k)}` – {c}")
+    md.append("\n## Top sentence openers (top 30)\n")
+    for k, c in top_openers[:30]:
+        md.append(f"- `{' '.join(k)}...` – {c}")
+    md.append("\n## Top sentence enders (top 20)\n")
+    for k, c in top_enders[:20]:
+        md.append(f"- `...{' '.join(k)}` – {c}")
+    md.append("\n## Signature phrases (frequency)\n")
+    for p, c in sorted(phrase_counts.items(), key=lambda x: -x[1]):
+        md.append(f"- `{p}` – {c}")
+    md.append("\n## Sample very short sentences (≤5 words)\n")
+    for s in very_short[:30]:
+        md.append(f"- {s}")
+    md.append("\n## Sample openings (first 3 sentences per file)\n")
+    for vo in video_openings[:10]:
+        md.append(f"\n### `{vo['file']}`\n{vo['first3']}\n")
+    md.append("\n## Sample endings (last 3 sentences per file)\n")
+    for ve in video_endings[:10]:
+        md.append(f"\n### `{ve['file']}`\n{ve['last3']}\n")
+
+    OUT_MD.write_text("\n".join(md), encoding="utf-8")
+
+    print(f"Wrote {OUT_JSON} and {OUT_MD}")
+    print(f"Files: {len(items)} | Tokens: {len(all_tokens)} | Types: {len(types)} | TTR: {ttr:.4f}")
+    print(f"Sentences: {len(sentences)} | Avg: {avg_sent:.2f} | Median: {median_sent}")
+    print(f"Questions: {len(questions)} | Declar: {len(declar)}")
+    print(f"MEZO: complex {layers['MEZO']['complex_sentence_pct']}% | "
+          f"paragraphs {layers['MEZO']['paragraphs_total']} "
+          f"(multi-para files {layers['MEZO']['files_with_multiple_paragraphs']}/{len(items)})")
+    print(f"MIKRO: passive~{passive_hits} | MAKRO: transitions {transition_total}")
+    if layers["MEZO"]["files_with_multiple_paragraphs"] == 0:
+        print("WARN: korpus bez akapitów (mowa/auto-caption) — mezo/makro czytaj per materiał.")
+
+
+if __name__ == "__main__":
+    main()

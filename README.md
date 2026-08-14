@@ -38,6 +38,12 @@ Knowledge graph + konsensus SERP + query fan-out dla frazy SEO. Mapa encji i pod
 
 Roadmapa pierwszego zarobku z AI dla początkujących: wywiad, hipotezy nisz, research rynku, plan działania.
 
+### /stylometria – odcisk palca stylu
+
+Analiza stylu konkretnej osoby lub marki z jej tekstów (transkrypty YT, posty, artykuły, e-booki, wklejony tekst) w trzech warstwach – **mikro** (słowo, gramatyka, interpunkcja), **mezo** (zdanie, akapit, środki stylistyczne) i **makro** (ton, kohezja, architektura tekstu) – zapakowana w trzy artefakty: raport analityczny ze statystykami (n-gramy, TTR, rytm zdań, strona bierna, słowa-przejścia), styleguide do ręcznej pracy oraz execution-ready system prompt dla agentów piszących w tym głosie. Działa na pliku, folderze, URL-u albo wklejonym tekście – minimum użyteczne ~10 000 słów, optimum 30 000+.
+
+Self-contained (Python stdlib only) – nie potrzebuje folderu `_shared`. W zestawie templaty skryptu analizującego, pobieraczki transkryptów z YouTube i trzech dokumentów wyjściowych.
+
 ### _shared – polska typografia
 
 Wspólne zasady typograficzne (cudzysłowy „", półpauza, kolejność interpunkcji przy cytatach) plus walidator w Pythonie. Skill humanizacja z niego korzysta.
@@ -47,14 +53,14 @@ Wspólne zasady typograficzne (cudzysłowy „", półpauza, kolejność interpu
 Skopiuj foldery do katalogu skilli Claude Code:
 
 ```
-cp -r humanizacja humanize humanizacja-check _shared fact-checker knowledge-graph od-zera-do-zlecenia ~/.claude/skills/
+cp -r humanizacja humanize humanizacja-check _shared fact-checker knowledge-graph od-zera-do-zlecenia stylometria ~/.claude/skills/
 ```
 
 Na Windows: `C:\Users\<user>\.claude\skills\`.
 
 ## Powiązane
 
-Skille /frazy-ai (chirurgiczne cięcie fraz AI, minimalny diff) i /stylometria (odcisk palca stylu autora) mieszkają w repo [AI-Ninjas](https://github.com/Bartosh16/AI-Ninjas). Zasada kciuka: najpierw /frazy-ai, a jeśli tekst dalej brzmi jak AI – /humanizacja.
+Skill /frazy-ai (chirurgiczne cięcie fraz AI, minimalny diff) mieszka w repo [AI-Ninjas](https://github.com/Bartosh16/AI-Ninjas). Zasada kciuka: najpierw /frazy-ai, a jeśli tekst dalej brzmi jak AI – /humanizacja.
 
 ## Autor
 
