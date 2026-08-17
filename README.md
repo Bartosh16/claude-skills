@@ -30,6 +30,12 @@ Na końcu nie zostawia samej diagnozy: generuje gotowy tekst po korekcie plus pr
 
 Optymalizacja treści pod AI Search i cytowania przez LLM-y: BLUF, koszt pozyskania informacji, struktura nagłówków, gęstość informacyjna.
 
+### /ymyl-analyzer – klasyfikacja i audyt treści YMYL
+
+Analiza tekstu według Search Quality Rater Guidelines Google (edycja wrzesień 2025). Trzy tryby: klasyfikacja (czy temat jest YMYL i w której kategorii – spektrum wyraźnie / może być / raczej nie), audyt (6 wymiarów po 0–5, m.in. odpowiedzialność za treść, zgodność z konsensusem ekspertów, adekwatność typu ekspertyzy; twarda bramka KRYTYCZNE przy flagach Lowest) i poprawki (konkretne zmiany z BEFORE/AFTER). Wykrywa wiele branż naraz i ładuje wytyczne per branża: zdrowie, finanse, ubezpieczenia, prawo, bezpieczeństwo, społeczeństwo/news, e-commerce. Każdy finding ma numer sekcji SQRG.
+
+Wymaga folderu `_shared` (walidator typografii). Dobrze gra w parze z /eeat-analyzer: YMYL mówi, jak ostry próg obowiązuje, E-E-A-T mierzy siłę sygnałów.
+
 ### /knowledge-graph
 
 Knowledge graph + konsensus SERP + query fan-out dla frazy SEO. Mapa encji i podtematów przed pisaniem artykułu.
@@ -53,7 +59,7 @@ Wspólne zasady typograficzne (cudzysłowy „", półpauza, kolejność interpu
 Skopiuj foldery do katalogu skilli Claude Code:
 
 ```
-cp -r humanizacja humanize humanizacja-check _shared fact-checker knowledge-graph od-zera-do-zlecenia stylometria ~/.claude/skills/
+cp -r humanizacja humanize humanizacja-check _shared fact-checker knowledge-graph od-zera-do-zlecenia stylometria ymyl-analyzer ~/.claude/skills/
 ```
 
 Na Windows: `C:\Users\<user>\.claude\skills\`.
