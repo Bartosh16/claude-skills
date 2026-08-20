@@ -30,6 +30,12 @@ Na końcu nie zostawia samej diagnozy: generuje gotowy tekst po korekcie plus pr
 
 Optymalizacja treści pod AI Search i cytowania przez LLM-y: BLUF, koszt pozyskania informacji, struktura nagłówków, gęstość informacyjna.
 
+### /hooki – 5 hooków do kreacji + matryca wyboru
+
+Dostaje wsad (post, skrypt wideo, reklamę, artykuł, brief) i proponuje 5 hooków – każdy innym, nazwanym mechanizmem psychologicznym, z uzasadnieniem i metryką do obserwacji. Dobór nie jest losowy: wynika z matrycy wyboru na czterech osiach – platforma × poziom świadomości Schwartza × cel treści × temperatura ruchu. Każda propozycja przechodzi check anty-wzorców (engagement bait, clickbait bez payoffu, wypalone formuły, dark patterns).
+
+W references siedzi baza: 22 typy hooków tekstowych, 24 typy hooków wideo, formuły nagłówkowe (Bly, Caples, AIDA/PAS/4U) z danymi empirycznymi, mechanizmy psychologiczne (Loewenstein, Zeigarnik, Berger, Cialdini) oraz benchmarki platform 2025/2026 z progami decyzyjnymi (hook rate, retencja, cutoffy). Self-contained – nie potrzebuje folderu `_shared`.
+
 ### /ymyl-analyzer – klasyfikacja i audyt treści YMYL
 
 Analiza tekstu według Search Quality Rater Guidelines Google (edycja wrzesień 2025). Trzy tryby: klasyfikacja (czy temat jest YMYL i w której kategorii – spektrum wyraźnie / może być / raczej nie), audyt (6 wymiarów po 0–5, m.in. odpowiedzialność za treść, zgodność z konsensusem ekspertów, adekwatność typu ekspertyzy; twarda bramka KRYTYCZNE przy flagach Lowest) i poprawki (konkretne zmiany z BEFORE/AFTER). Wykrywa wiele branż naraz i ładuje wytyczne per branża: zdrowie, finanse, ubezpieczenia, prawo, bezpieczeństwo, społeczeństwo/news, e-commerce. Każdy finding ma numer sekcji SQRG.
@@ -59,7 +65,7 @@ Wspólne zasady typograficzne (cudzysłowy „", półpauza, kolejność interpu
 Skopiuj foldery do katalogu skilli Claude Code:
 
 ```
-cp -r humanizacja humanize humanizacja-check _shared fact-checker knowledge-graph od-zera-do-zlecenia stylometria ymyl-analyzer ~/.claude/skills/
+cp -r humanizacja humanize humanizacja-check _shared fact-checker hooki knowledge-graph od-zera-do-zlecenia stylometria ymyl-analyzer ~/.claude/skills/
 ```
 
 Na Windows: `C:\Users\<user>\.claude\skills\`.
