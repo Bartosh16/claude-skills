@@ -55,6 +55,14 @@ Jeśli **platforma lub cel** są nieznane i nie da się ich sensownie wywnioskow
 pytanie (AskUserQuestion z opcjami), nie przesłuchanie. Poziom świadomości i temperaturę
 wywnioskuj i jawnie zapisz jako założenie w wyniku.
 
+Reguły brzegowe:
+
+- **Podwójny cel** (np. „zasięg + zapisy"): wybierz cel GŁÓWNY (ten, który user wymienił
+  pierwszy, albo bliższy biznesowo), dobieraj mechanizmy pod niego, a cel drugi traktuj jako
+  tie-breaker przy równorzędnych typach. Hierarchię zapisz w założeniach.
+- **Tryb delegowany** (działasz jako subagent, bez możliwości dopytania): nie blokuj się na
+  pytaniu – przyjmij najbardziej prawdopodobne wartości osi i zapisz je w założeniach.
+
 ### Krok 3. Załaduj references (tylko pasujące)
 
 - [references/matryca-wyboru.md](references/matryca-wyboru.md) – ZAWSZE. Wybór typów hooków
@@ -111,5 +119,9 @@ patterns. Hook, który wpada w anty-wzorzec – wymień na inny typ, nie łagod�
 **Metryka do obserwacji:** [metryka dla tej platformy] – próg: [próg decyzyjny z benchmarków,
 np. „hook rate <25% po 3 dniach = wymień kreację, nie optymalizuj"].
 ```
+
+Progi liczbowe istnieją dla Meta i TikToka. Dla LinkedIn, e-maila i bloga podaj próg
+jakościowy z sekcji „Progi decyzyjne" w matrycy (np. „niski % rozwinięć = wymień linię 1")
+– nie wymyślaj liczb, których nie ma w references.
 
 Po tabeli nic więcej – żadnych podsumowań ani „mam nadzieję, że pomoże".

@@ -56,6 +56,9 @@ Nie porównuj hook rate kreacji cold z warm – ~14 p.p. różnicy robi audytori
 4. Ustal temperaturę → skalibruj obietnicę wg osi 4.
 5. Z tego, co zostało, wybierz 5 typów możliwie odległych od siebie mechanizmem
    (np. nie bierz naraz curiosity gap + open loop + „wait for it" – to jedna rodzina).
+6. **Fallback:** jeżeli po przecięciu osi zostaje mniej niż 5 typów, dobierz brakujące
+   z SĄSIEDNIEGO poziomu świadomości (problem-aware pożycza od unaware i solution-aware itd.)
+   i odnotuj to w założeniach wyniku. Osi 1 (platforma) nie łam nigdy – budżet i forma są twarde.
 
 ## Progi decyzyjne (kiedy zmienić hook, a kiedy kreację)
 
