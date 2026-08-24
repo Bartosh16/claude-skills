@@ -50,11 +50,9 @@ Knowledge graph + konsensus SERP + query fan-out dla frazy SEO. Mapa encji i pod
 
 Wywiad o kompetencjach, preferencjach, awersjach i ekonomice osobistej, który kończy się gotowym Business Model Canvas (9 bloków), policzonym progiem rentowności, dwoma kanałami dotarcia z progami wyłączenia i planem B z warunkami wyzwalającymi.
 
-Rdzeń wyróżniający: przed domknięciem canvasu skill zatrzymuje się i wymusza research – najlepiej żywy, w postaci 8-12 rozmów z ludźmi z segmentu wg zasad Mom Testa (pytaj o przeszłość i wydane pieniądze, nigdy o hipotezy), a nie dane pozbierane z sieci. Ścieżka bez researchu jest dostępna, ale każde założenie o kliencie ląduje w wyniku oznaczone jako `[NIEZWALIDOWANE]`. Model, który nie spina się arytmetycznie – liczba klientów do progu razy godziny obsługi przekracza dostępny czas – wraca do poprawki zamiast iść dalej jako ładna tabelka.
+Rdzeń wyróżniający: przed domknięciem canvasu skill zatrzymuje się i wymusza research – najlepiej żywy, w postaci 8-12 rozmów z ludźmi z segmentu wg zasad Mom Testa, a nie dane pozbierane z sieci. Model, który nie spina się arytmetycznie, wraca do poprawki zamiast iść dalej jako ładna tabelka. Różnica od `/od-zera-do-zlecenia`: tamten prowadzi kogoś bez doświadczenia do pierwszego zlecenia, ten jest dla kogoś, kto już coś potrafi i potrzebuje z tego modelu zarabiania.
 
-Różnica od `/od-zera-do-zlecenia`: tamten prowadzi kogoś bez doświadczenia do pierwszego płatnego zlecenia (nisza + roadmapa nauki). Ten jest dla kogoś, kto już coś potrafi i potrzebuje z tego modelu zarabiania. Czyta output obu sąsiednich skilli, jeśli istnieje – `roadmapa.md` skraca wywiad, `wyroznik-marki.md` daje gotowy wsad do propozycji wartości.
-
-Wersja standalone bez Claude Code: [prompt-model-biznesowy.md](prompt-model-biznesowy.md) w rootzie repo – jeden prompt do wklejenia w ChatGPT, Claude.ai albo Gemini, ta sama logika bez zależności od plików i narzędzi.
+Zawiera też wersję standalone bez Claude Code – [`model-biznesowy/prompt-model-biznesowy.md`](model-biznesowy/prompt-model-biznesowy.md), jeden prompt do wklejenia w ChatGPT, Claude.ai albo Gemini. Szczegóły w [`model-biznesowy/README.md`](model-biznesowy/README.md).
 
 Wymaga folderu `_shared` (walidator typografii).
 
