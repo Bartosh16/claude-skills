@@ -11,11 +11,12 @@ Celem jest przerobić wygenerowany tekst tak, żeby brzmiał jak napisany przez 
 
 Po humanizacji zweryfikuj wynik skillem `/humanizacja-check` - sprawdza deterministycznie, czy zmiany faktycznie zaszły i czy sygnały zniknęły, zamiast polegać na własnej ocenie „wygląda lepiej".
 
-Praca przebiega w dwóch krokach:
+Praca przebiega w trzech krokach:
 1. **Audyt** - zidentyfikuj wszystkie sygnały AI w tekście (z cytatami i kategoriami).
-2. **Przepisanie** - przebuduj tekst z zachowaniem sensu i długości, eliminując sygnały AI.
+2. **Wsad autorski** - oznacz luki doświadczenia i, jeśli masz z kim rozmawiać, zapytaj autora, co chce dodać od siebie.
+3. **Przepisanie** - przebuduj tekst z zachowaniem sensu, eliminując sygnały AI i wplatając wsad od autora.
 
-Nie dodawaj nic od siebie. Nie wymyślaj faktów, liczb, nazwisk. Twoje zadanie to **czyścić i przebudowywać**, nie rozbudowywać.
+Nie wymyślaj faktów, liczb, nazwisk ani doświadczeń - to zakaz halucynacji i jest bezwzględny. Ale to NIE jest zakaz osobistej perspektywy: materiał, który autor poda w kroku 2, wplatasz do tekstu. Sam z siebie **czyścisz i przebudowujesz**; rozbudowujesz wyłącznie tym, co dostarczył autor.
 
 ## Workflow
 
@@ -43,6 +44,27 @@ Format raportu:
 Jeśli tekst jest czysty w jakiejś kategorii - pomiń ją w raporcie. Nie pisz "Zasada N: nic do poprawy". Po prostu omiń.
 
 **Szukaj rdzeniami, nie formami podstawowymi.** Polska fleksja rozbraja listy słów: „kluczowy" ma siedem form (kluczowa, kluczowego, kluczowym, kluczowe, kluczowych...). Skanując tekst pod kątem słów z tabel, szukaj rdzenia (`kluczow-`, `dynamiczn-`, `innowacyjn-`, `kompleksow-`, `fundamentaln-`), inaczej przepuścisz sześć z siedmiu trafień.
+
+### Krok 1.5: wsad autorski
+
+Humanizacja stylu nie doda tekstowi doświadczenia - a to brak doświadczenia, nie frazy, najmocniej zdradza AI i najwięcej kosztuje w E-E-A-T. Tekst po samej humanizacji brzmi jak człowiek, ale dalej nie ma nic do powiedzenia. Dlatego podczas audytu oznacz też **luki wsadu autorskiego**: miejsca, gdzie tekst aż prosi się o realny materiał, a dostaje ogólnik albo hipotetyczny scenariusz.
+
+Czego wypatrywać:
+
+- przykład hipotetyczny („załóżmy, że...", „wyobraź sobie...") tam, gdzie autor mógłby mieć realny case,
+- twierdzenie o skuteczności bez liczby („to oszczędza czas" - ile? komu? od kiedy?),
+- porada bez stanowiska - brak zdania, z którym ktoś kompetentny mógłby się nie zgodzić,
+- brak porażki lub kosztu - same historie sukcesu,
+- „w praktyce" bez śladu praktyki - żadnego „u mnie", „u klienta", „w projekcie X".
+
+Co z tym zrobić - zależnie od trybu pracy:
+
+- **Rozmawiasz z autorem na żywo** - po audycie, PRZED przepisaniem, zadaj 2-4 konkretne pytania o najważniejsze luki. Nie „czy chcesz coś dodać?", tylko pytanie zakotwiczone w cytacie: „Piszesz »automatyzacja oszczędza godziny« - masz liczbę z realnego wdrożenia?". Odpowiedzi wpleć podczas przepisywania.
+- **Działasz w pipeline** (agent blog-writer, subagent, brak człowieka do zapytania) - nie blokuj pracy. Przepisz tekst i wypisz luki w sekcji „Wsad autorski - luki" na końcu outputu, każdą z gotowym pytaniem, na które autor może odpowiedzieć jednym zdaniem.
+
+Materiał od autora nie liczy się do limitu ±20% długości - to celowa rozbudowa, nie odejście od oryginału. Odnotuj ją w notce redaktorskiej, żeby `/humanizacja-check` nie uznał przyrostu za błąd.
+
+Zakaz halucynacji pozostaje bezwzględny: luki wypełnia wyłącznie materiał od autora. Pusta luka zostaje pusta i trafia do raportu - to uczciwszy wynik niż zmyślony case.
 
 ### Krok 2: przepisanie
 
@@ -558,9 +580,17 @@ Granice:
 
 [Pełny przebudowany tekst.]
 
+## Wsad autorski - luki
+
+[Tylko luki, których autor nie wypełnił. Dla każdej: kotwica w tekście, czego brakuje, pytanie.
+Jeśli luk nie ma albo wszystkie wypełnione - pomiń całą sekcję.]
+
+- [sekcja / „cytat"] - brakuje: [case / liczba / opinia / porażka] - pytanie: „...?"
+
 ## Notka redaktorska
 
-[1-3 zdania: co było głównym problemem, co najmocniej zmieniłeś.]
+[1-3 zdania: co było głównym problemem, co najmocniej zmieniłeś.
+Jeśli wpleciono wsad od autora - napisz to i podaj, o ile tekst urósł.]
 ```
 
 

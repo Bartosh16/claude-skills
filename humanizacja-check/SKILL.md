@@ -67,6 +67,8 @@ Po poprawkach uruchom walidację ponownie na nowej parze plików.
 | Typografia | PL: em dash, cudzysłowy, kolejność interpunkcji, separatory. EN: limit em dashy, curly quotes | dowolne trafienie w kategorii twardej |
 | Wierność | delta długości, nowe liczby nieobecne w oryginale | delta > 35% |
 
+**Wyjątek od wierności - wsad autorski.** `/humanizacja` może wpleść do tekstu materiał dostarczony przez autora (case, liczby, opinie - krok 1.5 tamtego skilla) i deklaruje to w notce redaktorskiej. Nowe liczby i przyrost długości pokryte tą deklaracją to celowa rozbudowa, nie naruszenie wierności - odnotuj je w raporcie jako wsad autorski i nie blokuj werdyktu. Nowe fakty BEZ deklaracji w notce traktuj po staremu: podejrzenie halucynacji, blokada.
+
 **Kategorie twarde** (mają zniknąć w całości, nie zmaleć): wata słowna, atrybucja bez źródła, fałszywa autentyczność, coachingowy bełkot, otwarcia „jako [rola]", generyczne zakończenia, triady anaforyczne, konstrukcje „nie tylko X, ale Y". Po angielsku dochodzą artefakty czatbota i throat-clearing.
 
 **Kategorie miękkie** (mają zmaleć, nie muszą wyzerować): słownik AI, miękka komunikacja, unikanie „jest", bezosobowość, imiesłowy doklejone, nadużycie „bez". Wzrost licznika w którejkolwiek to regresja i blokada.
