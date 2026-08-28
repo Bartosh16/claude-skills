@@ -20,6 +20,12 @@ Sprawdza deterministycznie, czy humanizacja faktycznie zaszła: porównuje wersj
 
 Model, który przed chwilą przepisał tekst, jest najgorszym sędzią własnej roboty – ten skill zastępuje „wygląda lepiej" pomiarem.
 
+### /ai-audit – audyt AI slop ze SLOP-score
+
+Odpowiada na jedno pytanie: czy tekst powstał jako czyjaś praca, czy jako produkcja liniowa z master promptu. Ocenia siedem ważonych wymiarów – brak doświadczenia z pierwszej ręki, zerowy information gain, szablonowość struktury, wzorce językowe LLM, ślady maszynowej produkcji, treść podporządkowana lejkowi, równość jakości – i zwraca SLOP-score 0–100, werdykt, dowody z cytatami oraz plan naprawy. Działa na pojedynczym tekście, folderze i na cudzym blogu (audyt konkurencji).
+
+Zaczyna od liczb, nie od wrażenia: `scripts/metryki.py` (Python 3, stdlib) liczy burstiness, gęstość konkretów, pierwszej osoby, ram hipotetycznych i fraz przejściowych. To diagnoza, nie naprawa – naprawia /humanizacja.
+
 ### /fact-checker – weryfikacja twierdzeń + poprawiony tekst
 
 Wyławia z tekstu twierdzenia sprawdzalne (liczby, daty, statystyki, cytaty, opisy produktów), weryfikuje każde przez WebSearch na co najmniej 2–3 źródłach i składa raport z werdyktami PRAWDA / FAŁSZ / NIEWERYFIKOWALNE, uzasadnieniem i linkami.
@@ -75,7 +81,7 @@ Wspólne zasady typograficzne (cudzysłowy „", półpauza, kolejność interpu
 Skopiuj foldery do katalogu skilli Claude Code:
 
 ```
-cp -r humanizacja humanize humanizacja-check _shared fact-checker hooki knowledge-graph model-biznesowy od-zera-do-zlecenia stylometria ymyl-analyzer ~/.claude/skills/
+cp -r humanizacja humanize humanizacja-check _shared ai-audit fact-checker hooki knowledge-graph model-biznesowy od-zera-do-zlecenia stylometria ymyl-analyzer ~/.claude/skills/
 ```
 
 Na Windows: `C:\Users\<user>\.claude\skills\`.
