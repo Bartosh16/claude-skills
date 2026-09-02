@@ -72,6 +72,12 @@ Analiza stylu konkretnej osoby lub marki z jej tekstów (transkrypty YT, posty, 
 
 Self-contained (Python stdlib only) – nie potrzebuje folderu `_shared`. W zestawie templaty skryptu analizującego, pobieraczki transkryptów z YouTube i trzech dokumentów wyjściowych.
 
+### /formularz-apps-script – bezpieczny formularz Google Apps Script
+
+Buduje kompletny formularz jako Google Apps Script Web App: trzy pliki do przeklejenia (Code.gs, Index.html, appsscript.json), backend na Apps Script, dane w Google Sheets, komunikacja przez `google.script.run`. Cały front traktowany jako niezaufany – prawdziwa walidacja siedzi w Code.gs: allowlisty pól zamkniętych, twarda neutralizacja formula injection (`=1+1` ląduje jako tekst, nie jako wynik `2`), limity długości, schema validation, honeypot, LockService, minimalne oauthScopes, sekrety tylko w Script Properties. Kończy własnym code review, werdyktem `SECURITY REVIEW — PASS` i dokładną instrukcją wdrożenia.
+
+Leży w podfolderze [`skills/formularz-apps-script/`](skills/formularz-apps-script/). Obok SKILL.md jest [`PROMPT.md`](skills/formularz-apps-script/PROMPT.md) – ten sam proces jako jeden prompt do wklejenia w czacie, bez skilla.
+
 ### _shared – polska typografia
 
 Wspólne zasady typograficzne (cudzysłowy „", półpauza, kolejność interpunkcji przy cytatach) plus walidator w Pythonie. Skill humanizacja z niego korzysta.
