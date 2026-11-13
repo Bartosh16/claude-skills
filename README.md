@@ -58,6 +58,10 @@ Wywiad o kompetencjach, preferencjach, awersjach i ekonomice osobistej, który k
 
 Rdzeń wyróżniający: przed domknięciem canvasu skill zatrzymuje się i wymusza research – najlepiej żywy, w postaci 8-12 rozmów z ludźmi z segmentu wg zasad Mom Testa, a nie dane pozbierane z sieci. Model, który nie spina się arytmetycznie, wraca do poprawki zamiast iść dalej jako ładna tabelka. Różnica od `/od-zera-do-zlecenia`: tamten prowadzi kogoś bez doświadczenia do pierwszego zlecenia, ten jest dla kogoś, kto już coś potrafi i potrzebuje z tego modelu zarabiania.
 
+### /ocena-pomyslu-apki – czy na tę apkę jest miejsce
+
+Sprawdza pomysł na aplikację na danych z sieci: konkurencja z datą ostatniej aktualizacji, martwe apki i powód, dla którego padły, negatywne opinie, luka, dowód popytu, koszt obsługi jednego użytkownika. Kończy werdyktem z kryterium wyjścia. Stoi na badaniu 41 wywiadów Starter Story i danych RevenueCat. Wymaga WebSearch i WebFetch. W parze z `/model-biznesowy`: najpierw ocena pomysłu, potem model zarabiania.
+
 Zawiera też wersję standalone bez Claude Code – [`model-biznesowy/prompt-model-biznesowy.md`](model-biznesowy/prompt-model-biznesowy.md), jeden prompt do wklejenia w ChatGPT, Claude.ai albo Gemini. Szczegóły w [`model-biznesowy/README.md`](model-biznesowy/README.md).
 
 Wymaga folderu `_shared` (walidator typografii).
@@ -87,7 +91,7 @@ Wspólne zasady typograficzne (cudzysłowy „", półpauza, kolejność interpu
 Skopiuj foldery do katalogu skilli Claude Code:
 
 ```
-cp -r humanizacja humanize humanizacja-check _shared ai-audit fact-checker hooki knowledge-graph model-biznesowy od-zera-do-zlecenia stylometria ymyl-analyzer ~/.claude/skills/
+cp -r humanizacja humanize humanizacja-check _shared ai-audit fact-checker hooki knowledge-graph model-biznesowy ocena-pomyslu-apki od-zera-do-zlecenia stylometria ymyl-analyzer ~/.claude/skills/
 ```
 
 Na Windows: `C:\Users\<user>\.claude\skills\`.
